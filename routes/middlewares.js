@@ -2,9 +2,9 @@ const jwt = require('jsonwebtoken');
 
 const RateLimit = require('express-rate-limit');
 
-exports.apilimiter = RateLimit({
-    windowMs : 1*1000,
-    max : 1,
+exports.apiLimiter = RateLimit({
+    windowMs : 1*100,
+    max : 10,
     delayMs : 0,
     handler(req, res){
         res.status(this.statusCode).json({

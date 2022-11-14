@@ -3,32 +3,34 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const url = require('node:url');
 
-const { verifyToken, apilimiter } = require('./middlewares');
-const { Domain, User, Post, Hashtag} = require('../models');
+const { verifyToken, apiLimiter } = require('./middlewares');
+const { Domain, User, Post, Hashtag, Guestbook} = require('../models');
+const {d} = require("nunjucks/src/filters");
 
 const router = express.Router();
 
-// router.use(cors({
-//     credentials : true,
-// }));
+router.use(cors({
+    credentials : true,
+}));
 
-router.use(async (req, res, next) =>{
-    console.log("1111->", req.get('origin'));
-    const domain = await Domain.findOne({
-        where : { host : url.parse(req.get('origin')).host},
-    });
-    if (domain){
-        cors ({
-            origin : req.get('origin'),
-            credentials : true,
-        })(req, res, next);
-    }else{
-        next();
-    }
-});
+// router.use(async (req, res, next) =>{
+//     console.log("1111->", req.get('origin'));
+//     // select * from domains where host = 'localhost:4000'
+//     const domain = await Domain.findOne({
+//         where : { host : url.parse(req.get('origin')).host},
+//     });
+//     if (domain){
+//         cors ({
+//             origin : req.get('origin'),
+//             credentials : true,
+//         })(req, res, next);
+//     }else{
+//         next();
+//     }
+// });
 
 
-router.use(apilimiter);
+// router.use(apiLimiter);
 router.post('/token', async (req, res) => {
     const { clientSecret } = req.body;
     try {
@@ -65,52 +67,92 @@ router.post('/token', async (req, res) => {
         });
     }
 });
-
-router.get('/test', verifyToken, (req, res) => {
+router.get('/test', verifyToken, apiLimiter, (req, res) => {
     res.json(req.decoded);
 });
 
-
-router.get('/posts/my', verifyToken,(req, res) => {
-    Post.findAll( {where : {userId : req.decoded.id}})
+router.get('/posts/my', verifyToken, (req, res) => {
+    Post.findAll({ where: { userId: req.decoded.id } })
         .then((posts) => {
             console.log(posts);
             res.json({
-                code : 200,
-                payload : posts,
+                code: 200,
+                payload: posts,
             });
         })
         .catch((error) => {
+            console.error(error);
             return res.status(500).json({
-                code : 500,
-                message : "서버에러",
+                code: 500,
+                message: '서버 에러',
             });
         });
 });
 
-router.get('/posts/hashtag/:title', verifyToken, async (req, res) =>{
-    try{
-        const hashtag = await Hashtag.findOne({ where : {title : req.params.title}});
-        if(!hashtag){
-            return res.status(404).json({
-                code : 404,
-                message : '검색 결과가 없습니다.',
-            })
-        }
-        const posts = await  hashtag.getPosts();
-        return  res.json({
-            code : 200,
-            payload : posts,
+router.get('/guestbooks/my', verifyToken, (req, res) => {
+    Guestbook.findAll({})
+        .then((guestbooks) => {
+            console.log(guestbooks);
+            res.json({
+                code: 200,
+                payload: guestbooks,
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            return res.status(500).json({
+                code: 500,
+                message: '서버 에러',
+            });
         });
-    }
-    catch ( error) {
+});
+
+
+router.post('/guestbooks/create', verifyToken, (req, res) => {
+    // const {name, email, content} = req.body;
+    console.log("444444444->", req.body);
+    res.json({
+        code: 200,
+        payload: "444444444",
+    });
+    // try{
+    //     await Guestbook.create({
+    //         name,
+    //         email,
+    //         content
+    //     });
+    // }
+    // catch (error) {
+    //     console.error(error);
+    //     return next(error);
+    // }
+});
+
+
+
+
+
+router.get('/posts/hashtag/:title', verifyToken, apiLimiter, async (req, res) => {
+    try {
+        const hashtag = await Hashtag.findOne({ where: { title: req.params.title } });
+        if (!hashtag) {
+            return res.status(404).json({
+                code: 404,
+                message: '검색 결과가 없습니다',
+            });
+        }
+        const posts = await hashtag.getPosts();
+        return res.json({
+            code: 200,
+            payload: posts,
+        });
+    } catch (error) {
         console.error(error);
         return res.status(500).json({
-            code : 500,
-            message : "서버 에러",
-        })
+            code: 500,
+            message: '서버 에러',
+        });
     }
-})
-
+});
 
 module.exports = router;
