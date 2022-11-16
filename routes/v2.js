@@ -3,14 +3,14 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const url = require('node:url');
 
-const { verifyToken, apiLimiter } = require('./middlewares');
-const { Domain, User, Post, Hashtag, Guestbook} = require('../models');
+const {verifyToken, apiLimiter} = require('./middlewares');
+const {Domain, User, Post, Hashtag, Guestbook} = require('../models');
 const {d} = require("nunjucks/src/filters");
 
 const router = express.Router();
 
 router.use(cors({
-    credentials : true,
+    credentials: true,
 }));
 
 // router.use(async (req, res, next) =>{
@@ -32,10 +32,10 @@ router.use(cors({
 
 // router.use(apiLimiter);
 router.post('/token', async (req, res) => {
-    const { clientSecret } = req.body;
+    const {clientSecret} = req.body;
     try {
         const domain = await Domain.findOne({
-            where: { clientSecret },
+            where: {clientSecret},
             include: {
                 model: User,
                 attribute: ['nick', 'id'],
@@ -72,7 +72,7 @@ router.get('/test', verifyToken, apiLimiter, (req, res) => {
 });
 
 router.get('/posts/my', verifyToken, (req, res) => {
-    Post.findAll({ where: { userId: req.decoded.id } })
+    Post.findAll({where: {userId: req.decoded.id}})
         .then((posts) => {
             console.log(posts);
             res.json({
@@ -108,33 +108,95 @@ router.get('/guestbooks/my', verifyToken, (req, res) => {
 });
 
 
-router.post('/guestbooks/create', verifyToken, (req, res) => {
-    // const {name, email, content} = req.body;
-    console.log("444444444->", req.body);
-    res.json({
-        code: 200,
-        payload: "444444444",
-    });
-    // try{
-    //     await Guestbook.create({
-    //         name,
-    //         email,
-    //         content
-    //     });
-    // }
-    // catch (error) {
-    //     console.error(error);
-    //     return next(error);
-    // }
+router.post('/guestbooks/create', verifyToken, async (req, res) => {
+    // const {name, email, content} = req.body.data;
+    // console.log("3333333333->", req.body);
+    try {
+        const guestbook = await Guestbook.create({
+            "name": req.body.data.name,
+            "email": req.body.data.email,
+            "content": req.body.data.content,
+        });
+        res.json({
+            code: 200,
+            payload: "등록성공!!!!",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            code: 500,
+            message: '서버 에러',
+        });
+    }
+});
+
+router.post('/guestbooks/update', verifyToken, async (req, res) => {
+    // const {name, email, content} = req.body.data;
+    // console.log("3333333333->", req.body);
+    try {
+        const guestbook = await Guestbook.update({
+                "name": req.body.data.name,
+                "email": req.body.data.email,
+                "content": req.body.data.content,
+            }, {
+                where: {id: req.body.data.id}
+            }
+        );
+        res.json({
+            code: 200,
+            payload: "등록성공!!!!",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            code: 500,
+            message: '서버 에러',
+        });
+    }
 });
 
 
+router.get('/guestbooks/delete/:id', verifyToken, async (req, res) => {
+    try {
+        await Guestbook.destroy({where: {id: req.params.id}}
+        )
+        res.json({
+            code: 200,
+            payload: "삭제 성공!!!!",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            code: 500,
+            message: '서버 에러',
+        });
+    }
 
+});
+
+
+router.get('/guestbooks/update/:id', verifyToken, (req, res) => {
+    Guestbook.findOne({where: {id: req.params.id}})
+        .then((guestbooks) => {
+            console.log(guestbooks);
+            res.json({
+                code: 200,
+                payload: guestbooks,
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            return res.status(500).json({
+                code: 500,
+                message: '서버 에러',
+            });
+        });
+});
 
 
 router.get('/posts/hashtag/:title', verifyToken, apiLimiter, async (req, res) => {
     try {
-        const hashtag = await Hashtag.findOne({ where: { title: req.params.title } });
+        const hashtag = await Hashtag.findOne({where: {title: req.params.title}});
         if (!hashtag) {
             return res.status(404).json({
                 code: 404,

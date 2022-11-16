@@ -5,7 +5,7 @@ module.exports = class Guestbook extends Sequelize.Model {
         return super.init({
             name : {
                 type : Sequelize.STRING(30),
-                allowNull: false,
+                allowNull: true,
             },
             content: {
                 type: Sequelize.STRING(140),
@@ -28,6 +28,6 @@ module.exports = class Guestbook extends Sequelize.Model {
     }
 
     static associate(db) {
-        db.Guestbook.belongsTo(db.User);
+        // db.Guestbook.belongsTo(db.User);
     }
 };
